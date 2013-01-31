@@ -1,0 +1,117 @@
+
+set :application, "juliocesaralonso.com"
+set :host, "146.255.96.152"
+
+set :deploy_to, "/var/www/vhosts/#{application}"
+set :deploy_via, :remote_cache
+set :use_sudo, false
+set :keep_releases, 3
+
+
+# deploy with git
+set :scm, :git
+set :repository, "git@github.com:jalonsoad/juliocesaralonso.git"
+set :branch, "master"
+set :scm_verbose, true
+
+
+# deploy with git
+set :user, "deploy"
+ssh_options[:forward_agent] = true
+default_run_options[:pty] = true
+
+role :web, "146.255.96.152"  # Your HTTP server, Apache/etc
+role :app, "146.255.96.152"  # This may be the same as your `Web` server
+role :db,  "146.255.96.152", :primary => true  # This is where Rails migrations will run
+
+# =====================================================
+# SSH OPTIONS
+# =====================================================
+# You must have both the public and private keys available
+# in your .ssh directory
+#ssh_options[:keys] = [File.join(ENV["HOME"], ".ssh", "jcalonsov_id_rsa")]
+ssh_options[:forward_agent] = true
+default_run_options[:pty] = true
+
+
+ desc "Precompile & upload assets"
+  task :update_assets do
+    run "cd #{deploy_to}; bundle exec rake assets:precompile RAILS_ENV=#{rails_env} RAILS_GROUPS=assets"
+    
+    # It seemed like a good idea to precompile assets locally, then upload them.
+    # In practice it's too slow on the uploading to work
+    # run_locally "rake assets:clean assets:precompile RAILS_ENV=#{rails_env} RAILS_GROUPS=assets"
+
+    # run_locally "find public/assets \\( -name '*.psd' -o -name '*.ai' \\) -delete" # don't upload the giant psds
+
+    # require 'tempfile'
+    # asset_tar = Tempfile.new(['assets', '.tar.gz'])
+    # asset_tar.close
+    # asset_tar_name = File.basename(asset_tar.path)
+    # run_locally "tar chzf #{asset_tar.path} public/assets"
+
+    # # while we've been precompiling, we've probably lost the ssh connection.  Start again:
+    # teardown_connections_to sessions.keys
+
+    # upload(asset_tar.path, "#{code_root}/#{asset_tar_name}", :via => :scp)
+    # run "cd #{code_root} && tar xzf #{asset_tar_name} && rm #{asset_tar_name}"
+    # asset_tar.unlink
+  end
+  
+namespace :db do
+
+  task :copy_to_local, :roles=>:db, :only=>{:primary=>true} do
+    from = db_config['production']
+    to = db_config['development']
+    dump_file = "/tmp/juliocesaralonso_dump_#{Time.now.to_i}.dmp.gz"
+    local_dump_file = "/tmp/juliocesaralonso_dump_#{Time.now.to_i}.dmp.gz"
+
+    puts "Copying db from #{from['database']}@#{from['host']} to #{to['database']}@#{to['host']} (via #{local_dump_file})"
+    time("Exported db") do
+      #run("/usr/bin/pg_dump #{sql_config(from)} #{dump_config(from)} | gzip -9 > #{dump_file}")
+      #/usr/bin/pg_dump publicfacturama_production -U publicfacturama  >> backup1.dmp
+      run("/usr/bin/pg_dump #{sql_config(from)} -U publicfacturama | gzip -9 > #{dump_file}")
+    end
+    time("Downloaded db") do
+      download dump_file, local_dump_file
+    end
+    # time("Imported db") do
+    #   run_locally("gunzip < #{local_dump_file} | mysql #{sql_config(to)}")
+    # end
+  end
+
+  def db_config
+    require 'yaml'
+    @db_config ||= YAML.load(ERB.new(File.read('config/database.yml')).result(binding))
+  end
+  def sql_config(options)
+    "#{options['database']} --host=#{options['host']||'localhost'} "
+  end
+  def dump_config(options)
+    "--add-drop-table --single-transaction --quick --extended-insert --ignore-table=#{options['database']}.delayed_jobs"
+  end
+  def time(msg)
+    start = Time.now
+    yield
+    puts "#{msg} in #{Time.now - start} seconds"
+  end
+end
+
+
+
+# if you want to clean up old releases on each deploy uncomment this:
+after "deploy:restart", "deploy:cleanup"
+
+# if you're still using the script/reaper helper you will need
+# these http://github.com/rails/irs_process_scripts
+
+# If you are using Passenger mod_rails uncomment this:
+ namespace :deploy do
+   task :start do ; end
+   task :stop do ; end
+   task :restart, :roles => :app, :except => { :no_release => true } do
+     run "#{try_sudo} touch #{File.join(current_path,'tmp','restart.txt')}"
+   end
+ end
+
+ 
