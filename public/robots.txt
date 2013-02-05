@@ -1,2 +1,3 @@
+# robots.txt for http://juliocesaralonso.com
 User-agent: *
-Disallow:
+Disallow: /docs/ # This is an infinite virtual URL space
