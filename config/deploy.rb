@@ -1,117 +1,110 @@
-
-set :application, "juliocesaralonso.com"
+set :application, 'juliocesaralonso.com'
+set :full_app_name, 'juliocesaralonso'
 set :host, "146.255.96.152"
+set :deploy_user, 'deploy'
 
-set :deploy_to, "/var/www/vhosts/#{application}"
-set :deploy_via, :remote_cache
+
+set :pty, true
 set :use_sudo, false
-set :keep_releases, 3
 
 
-# deploy with git
+# setup repo details
 set :scm, :git
-set :repository, "git@github.com:jalonsoad/juliocesaralonso.git"
-set :branch, "master"
-set :scm_verbose, true
+set :repo_url, 'git@github.com:jalonsoad/juliocesaralonso.git'
+
+# setup rvm.
+set :rbenv_type, :user
+set :rbenv_ruby, '2.3.1'
+#set :rbenv_path, '/usr/bin'
+
+#set :rbenv_prefix, "RBENV_ROOT=#{fetch(:rbenv_path)} RBENV_VERSION=#{fetch(:rbenv_ruby)} #{fetch(:rbenv_path)}/bin/rbenv exec"
+set :rbenv_map_bins, %w{rake gem bundle ruby rails}
+
+# how many old releases do we want to keep
+set :keep_releases, 5
+
+# files we want symlinking to specific entries in shared.
+set :linked_files, %w{config/database.yml}
+
+# dirs we want symlinking to shared
+set :linked_dirs, %w{bin log tmp/pids tmp/cache tmp/sockets vendor/bundle public/system}
+
+# what specs should be run before deployment is allowed to
+# continue, see lib/capistrano/tasks/run_tests.cap
+set :tests, []
+
+#Asset Management
+set :assets_roles, [:app]
 
 
-# deploy with git
-set :user, "deploy"
-ssh_options[:forward_agent] = true
-default_run_options[:pty] = true
+# which config files should be copied by deploy:setup_config
+# see documentation in lib/capistrano/tasks/setup_config.cap
+# for details of operations
+set(:config_files, %w(
+  nginx.conf
+  database.example.yml
+  log_rotation
+  monit
+  unicorn.rb
+  unicorn_init.sh
+))
 
-role :web, "146.255.96.152"  # Your HTTP server, Apache/etc
-role :app, "146.255.96.152"  # This may be the same as your `Web` server
-role :db,  "146.255.96.152", :primary => true  # This is where Rails migrations will run
+# which config files should be made executable after copying
+# by deploy:setup_config
+set(:executable_config_files, %w(
+  unicorn_init.sh
+))
 
-# =====================================================
-# SSH OPTIONS
-# =====================================================
-# You must have both the public and private keys available
-# in your .ssh directory
-#ssh_options[:keys] = [File.join(ENV["HOME"], ".ssh", "jcalonsov_id_rsa")]
-ssh_options[:forward_agent] = true
-default_run_options[:pty] = true
+# files which need to be symlinked to other parts of the
+# filesystem. For example nginx virtualhosts, log rotation
+# init scripts etc.
+set(:symlinks, [
+  {
+    source: "nginx.conf",
+    link: "/etc/nginx/sites-enabled/#{fetch(:full_app_name)}"
+  },
+  {
+    source: "unicorn_init.sh",
+    link: "/etc/init.d/unicorn_#{fetch(:full_app_name)}"
+  },
+  {
+    source: "log_rotation",
+   link: "/etc/logrotate.d/#{fetch(:full_app_name)}"
+  },
+  {
+    source: "monit",
+    link: "/etc/monit/conf.d/#{fetch(:full_app_name)}.conf"
+  }
+])
 
 
- desc "Precompile & upload assets"
-  task :update_assets do
-    run "cd #{deploy_to}; bundle exec rake assets:precompile RAILS_ENV=#{rails_env} RAILS_GROUPS=assets"
-    
-    # It seemed like a good idea to precompile assets locally, then upload them.
-    # In practice it's too slow on the uploading to work
-    # run_locally "rake assets:clean assets:precompile RAILS_ENV=#{rails_env} RAILS_GROUPS=assets"
+# this:
+# http://www.capistranorb.com/documentation/getting-started/flow/
+# is worth reading for a quick overview of what tasks are called
+# and when for `cap stage deploy`
 
-    # run_locally "find public/assets \\( -name '*.psd' -o -name '*.ai' \\) -delete" # don't upload the giant psds
+namespace :deploy do
+  # make sure we're deploying what we think we're deploying
+  before :deploy, "deploy:check_revision"
+  # only allow a deploy with passing tests to deployed
+  before :deploy, "deploy:run_tests"
+  # compile assets locally then rsync
+ # after 'deploy:symlink:shared', 'deploy:compile_assets_locally'
+  after :finishing, 'deploy:cleanup'
 
-    # require 'tempfile'
-    # asset_tar = Tempfile.new(['assets', '.tar.gz'])
-    # asset_tar.close
-    # asset_tar_name = File.basename(asset_tar.path)
-    # run_locally "tar chzf #{asset_tar.path} public/assets"
+  # remove the default nginx configuration as it will tend
+  # to conflict with our configs.
+  before 'deploy:setup_config', 'nginx:remove_default_vhost'
 
-    # # while we've been precompiling, we've probably lost the ssh connection.  Start again:
-    # teardown_connections_to sessions.keys
+  # reload nginx to it will pick up any modified vhosts from
+  # setup_config
+  after 'deploy:setup_config', 'nginx:reload'
 
-    # upload(asset_tar.path, "#{code_root}/#{asset_tar_name}", :via => :scp)
-    # run "cd #{code_root} && tar xzf #{asset_tar_name} && rm #{asset_tar_name}"
-    # asset_tar.unlink
-  end
-  
-namespace :db do
+  # Restart monit so it will pick up any monit configurations
+  # we've added
+  after 'deploy:setup_config', 'monit:restart'
 
-  task :copy_to_local, :roles=>:db, :only=>{:primary=>true} do
-    from = db_config['production']
-    to = db_config['development']
-    dump_file = "/tmp/juliocesaralonso_dump_#{Time.now.to_i}.dmp.gz"
-    local_dump_file = "/tmp/juliocesaralonso_dump_#{Time.now.to_i}.dmp.gz"
-
-    puts "Copying db from #{from['database']}@#{from['host']} to #{to['database']}@#{to['host']} (via #{local_dump_file})"
-    time("Exported db") do
-      #run("/usr/bin/pg_dump #{sql_config(from)} #{dump_config(from)} | gzip -9 > #{dump_file}")
-      #/usr/bin/pg_dump publicfacturama_production -U publicfacturama  >> backup1.dmp
-      run("/usr/bin/pg_dump #{sql_config(from)} -U publicfacturama | gzip -9 > #{dump_file}")
-    end
-    time("Downloaded db") do
-      download dump_file, local_dump_file
-    end
-    # time("Imported db") do
-    #   run_locally("gunzip < #{local_dump_file} | mysql #{sql_config(to)}")
-    # end
-  end
-
-  def db_config
-    require 'yaml'
-    @db_config ||= YAML.load(ERB.new(File.read('config/database.yml')).result(binding))
-  end
-  def sql_config(options)
-    "#{options['database']} --host=#{options['host']||'localhost'} "
-  end
-  def dump_config(options)
-    "--add-drop-table --single-transaction --quick --extended-insert --ignore-table=#{options['database']}.delayed_jobs"
-  end
-  def time(msg)
-    start = Time.now
-    yield
-    puts "#{msg} in #{Time.now - start} seconds"
-  end
+  # As of Capistrano 3.1, the `deploy:restart` task is not called
+  # automatically.
+  after 'deploy:publishing', 'deploy:restart'
 end
-
-
-
-# if you want to clean up old releases on each deploy uncomment this:
-after "deploy:restart", "deploy:cleanup"
-
-# if you're still using the script/reaper helper you will need
-# these http://github.com/rails/irs_process_scripts
-
-# If you are using Passenger mod_rails uncomment this:
- namespace :deploy do
-   task :start do ; end
-   task :stop do ; end
-   task :restart, :roles => :app, :except => { :no_release => true } do
-     run "#{try_sudo} touch #{File.join(current_path,'tmp','restart.txt')}"
-   end
- end
-
- 

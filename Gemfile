@@ -9,6 +9,24 @@ gem 'rails', github: 'rails/rails', branch: '3-2-stable'
 #gem 'pg'
 
 
+
+ gem 'sshkit'
+   
+gem 'capistrano', '~> 3.4.0'
+
+# rails specific capistrano funcitons
+gem 'capistrano-rails', '~> 1.1.1'
+
+# integrate bundler with capistrano
+gem 'capistrano-bundler', '~> 1.1.2'
+
+# if you are using RBENV
+gem 'capistrano-rbenv', github: "capistrano/rbenv"
+
+# Use the Unicorn app server
+gem 'unicorn'
+
+
 # Gems used only for assets and not required
 # in production environments by default.
 group :assets do
