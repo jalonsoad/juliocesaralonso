@@ -53,3 +53,20 @@ production:
   pool: 5
   username: juliocesaralonso
   password:
+
+
+production:
+  adapter: postgresql
+  encoding: unicode
+  database: juliocesaralonso_test
+  pool: 5
+  username: juliocesaralonso
+  password:
+
+production:
+  adapter: postgresql
+  encoding: unicode
+  database: juliocesaralonso_production
+  pool: 5
+  username: deploy
+  password: hlqH22IMW4#
