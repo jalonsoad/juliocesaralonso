@@ -1,3 +1,58 @@
+
+lock '3.3.5'
+
+set :application, 'juliocesaralonso.com'
+set :repo_url, 'git@github.com:jalonsoad/juliocesaralonso.git'
+
+
+ask :branch, proc { `git rev-parse --abbrev-ref HEAD`.chomp }.call
+
+set :use_sudo, false
+set :bundle_binstubs, nil
+set :linked_files, fetch(:linked_files, []).push('config/database.yml')
+set :linked_dirs, fetch(:linked_dirs, []).push('log', 'tmp/pids', 'tmp/cache', 'tmp/sockets', 'vendor/bundle', 'public/system')
+
+after 'deploy:publishing', 'deploy:restart'
+
+namespace :deploy do
+  task :restart do
+    invoke 'unicorn:reload'
+  end
+end
+
+
+
+
+production rb
+********
+set :stage, :production
+set :branch, "master"
+
+# used in case we're deploying multiple versions of the same
+# app side by side. Also provides quick sanity checks when looking
+# at filepaths
+set :full_app_name, "#{fetch(:application)}_#{fetch(:stage)}"
+set :server_name, "www.juliocesaralonso.com juliocesar.com"
+
+server '146.255.96.152', user: 'deploy', roles: %w{web app db}, primary: true
+
+set :deploy_to, "/var/www/vhost/juliocesaralonso.com/apps/#{fetch(:full_app_name)}"
+
+# dont try and infer something as important as environment from
+# stage name.
+set :rails_env, :production
+
+# number of unicorn workers, this will be reflected in
+# the unicorn.rb and the monit configs
+set :unicorn_worker_count, 5
+
+# whether we're using ssl or not, used for building nginx
+# config file
+set :enable_ssl, false
+*****************
+
+
+
 set :application, 'juliocesaralonso.com'
 set :full_app_name, 'juliocesaralonso'
 set :host, "146.255.96.152"
