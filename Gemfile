@@ -6,7 +6,7 @@ gem 'rails', github: 'rails/rails', branch: '3-2-stable'
 # Bundle edge Rails instead:
 # gem 'rails', :git => 'git://github.com/rails/rails.git'
 
-#gem 'pg'
+gem 'pg'
 
 # Use the Unicorn app server
 gem 'unicorn'
