@@ -11,8 +11,6 @@ gem 'rails', github: 'rails/rails', branch: '3-2-stable'
 # Use the Unicorn app server
 gem 'unicorn'
 
-
-
 group :development do
   gem 'capistrano-rails'
   gem 'capistrano-rvm'

@@ -7,7 +7,6 @@ set :repo_url, 'git@github.com:jalonsoad/juliocesaralonso.git'
 
 ask :branch, proc { `git rev-parse --abbrev-ref HEAD`.chomp }.call
 
-
 # setup rvm.
 set :rbenv_type, :user
 #set :rbenv_ruby, '2.3.1'
@@ -19,7 +18,7 @@ set :rbenv_path, '/usr/bin'
 
 set :use_sudo, false
 set :bundle_binstubs, nil
-set :linked_files, fetch(:linked_files, []).push('config/database.yml')
+# not database needed set :linked_files, fetch(:linked_files, []).push('config/database.yml')
 set :linked_dirs, fetch(:linked_dirs, []).push('log', 'tmp/pids', 'tmp/cache', 'tmp/sockets', 'vendor/bundle', 'public/system')
 
 after 'deploy:publishing', 'deploy:restart'
