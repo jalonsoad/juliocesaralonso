@@ -12,6 +12,10 @@ preload_app true
 timeout 30
 
 
+
+ENV="production"
+
+
 listen '/tmp/unicorn.spui.sock', backlog: 64
 
 before_fork do |server, worker|
