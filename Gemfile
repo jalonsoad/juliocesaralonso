@@ -15,6 +15,7 @@ group :development do
   gem 'capistrano-rails'
   gem 'capistrano-rvm'
   gem 'capistrano3-unicorn'
+  gem 'net-ssh', '~> 2.9.1'
 end
 
 
