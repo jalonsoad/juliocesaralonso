@@ -11,12 +11,9 @@ gem 'pg'
 # Use the Unicorn app server
 gem 'unicorn'
 
-group :development do
   gem 'capistrano-rails'
   gem 'capistrano-rvm'
   gem 'capistrano3-unicorn'
-  gem 'net-ssh', '~> 2.9.1'
-end
 
 
 # Gems used only for assets and not required
@@ -24,6 +21,7 @@ end
 group :assets do
   gem 'sass-rails',   '~> 3.2.3'
   gem 'coffee-rails', '~> 3.2.1'
+  gem 'net-ssh'
 
   # See https://github.com/sstephenson/execjs#readme for more supported runtimes
   # gem 'therubyracer', :platforms => :ruby
