@@ -9,7 +9,7 @@ server '146.255.96.152',
   user: fetch(:user),
   primary: true
 
-set :deploy_to, "/var/www/vhost/#{fetch(:application)}"
+set :deploy_to, "/home/juliocesaralonso/"
 
 set :ssh_options, {
   forward_agent: true,

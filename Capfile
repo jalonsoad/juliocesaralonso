@@ -1,3 +1,6 @@
+
+set :rbenv_ruby, '2.3.1'
+
 require 'capistrano/setup'
 require 'capistrano/deploy'
 require 'capistrano/rvm'
