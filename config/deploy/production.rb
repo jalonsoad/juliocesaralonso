@@ -1,15 +1,15 @@
-set :port, 22
+#set :port, 22
 set :user, 'deploy'
 set :deploy_via, :remote_cache
 set :use_sudo, false
 
-server '146.255.96.152',
-  roles: [:web, :app, :db],
-  port: fetch(:port),
-  user: fetch(:user),
-  primary: true
+#server '146.255.96.152',
+#  roles: [:web, :app, :db],
+#  port: fetch(:port),
+#  user: fetch(:user),
+#  primary: true
 
-set :deploy_to, "/home/juliocesaralonso/"
+set :deploy_to, "/var/www/vhost/juliocesaralonso.com/"
 
 set :ssh_options, {
   forward_agent: true,
