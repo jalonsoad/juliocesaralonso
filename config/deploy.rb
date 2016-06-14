@@ -1,6 +1,6 @@
 
 # Change these
-server '146.255.96.152', port: 22, roles: [:web, :app, :db], primary: true
+server '146.255.96.152', port: 22, roles: [:web, :app], primary: true
 
 set :repo_url,        'git@github.com:jalonsoad/juliocesaralonso.git'
 set :application,     'juliocesaralonso.com'
@@ -58,6 +58,7 @@ namespace :deploy do
       end
     end
   end
+
 
   desc 'Initial Deploy'
   task :initial do
