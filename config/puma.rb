@@ -23,7 +23,7 @@ state_path "#{shared_dir}/pids/puma.state"
 #activate_control_app
 
 
-activate_control_app 'unix://tmp/sockets/pumactl.sock'
+activate_control_app 'unix://tmp/sockets/juliocesaralonsopumactl.sock'
 
 #on_worker_boot do
 #  require "active_record"
