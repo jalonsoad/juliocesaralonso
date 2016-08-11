@@ -15,6 +15,8 @@ gem 'pg'
  # gem 'capistrano-rvm'
  # gem 'capistrano3-unicorn'
 
+gem 'puma'
+gem 'foreman'
 
 
 group :development do
@@ -26,8 +28,7 @@ group :development do
     gem 'net-ssh'
 end
 
-gem 'puma'
-gem 'foreman'
+
 
 
 # Gems used only for assets and not required
